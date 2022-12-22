@@ -1,7 +1,7 @@
 from django.utils.encoding import force_str
 from rest_framework import status
 from rest_framework.exceptions import APIException
-
+import re
 
 class CustomValidation(APIException):
     default_status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -33,3 +33,14 @@ def normalize_email(email):
         else:
             email = '@'.join([email_name, domain_part.lower()])
         return email
+    
+    
+def check_strong_password(password):
+        if (len(password) < 8 or 
+            (not re.findall('\d', password)) or 
+            (not re.findall('[A-Z]', password)) or 
+            (not re.findall('[a-z]', password))or 
+            (not re.findall('[!@#$%&*]', password))):
+            return False
+        else:
+            return True

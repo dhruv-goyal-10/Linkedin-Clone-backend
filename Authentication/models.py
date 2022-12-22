@@ -6,15 +6,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import datetime
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, phone_number,password=None):
+    def create_user(self, email,password=None):
         
         if not email:
             raise ValueError('Users must have an email address')
         
-        if not phone_number:
-            raise ValueError('Users must have a Phone Number')
-        
-        if not email:
+        if not password:
             raise ValueError('Users must have a Password')
 
         user = self.model(
@@ -25,11 +22,10 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email,phone_number, password=None):
+    def create_superuser(self, email, password=None):
     
         user = self.create_user(
             email=email,
-            phone_number=phone_number,
             password=password,
         )
         user.is_admin = True
@@ -44,17 +40,17 @@ class User(AbstractBaseUser):
         verbose_name='email address',
         max_length=255,
         unique=True,
-        validators= [RegexValidator(regex="^[A-Za-z0-9._%+-]+@gmail\.com$", message='Try with a Different Email Domain',),]
     )
-    phone_number = models.BigIntegerField(validators=[MinValueValidator(1000000000), MaxValueValidator(9999999999)])
     
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
-
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['phone_number']
+    REQUIRED_FIELDS = []
 
     def __str__(self):
         return self.email
@@ -84,8 +80,7 @@ class User(AbstractBaseUser):
         
 class PhoneOTP(models.Model):
     
-    phone_number = models.BigIntegerField(blank=True, null=True, validators=[
-                                           MinValueValidator(1000000000), MaxValueValidator(9999999999)])
+    phone_number = models.BigIntegerField(unique=True, validators=[MinValueValidator(1000000000), MaxValueValidator(9999999999)])
     otp = models.IntegerField(null=True, blank=True)
     otp_created_at = models.DateTimeField(auto_now=True)
     
