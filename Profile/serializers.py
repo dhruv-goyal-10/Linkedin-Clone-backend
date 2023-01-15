@@ -29,7 +29,6 @@ class ShortExperienceSerializer(serializers.ModelSerializer):
         model = Experience
         fields = ['company_data']
 
-        
 class EducationSerializer(serializers.ModelSerializer):
     
     school_data = OrganizationSerializer(source = "school", read_only = True)
@@ -214,7 +213,26 @@ class ProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Profile
-        exclude = ['id', 'phone_number','user']
+        exclude = ['id', 'phone_number']
+        
+        
+    def update(self, instance, validated_data):
+        try:
+            username = validated_data['username']
+        except KeyError:
+            return super().update(instance, validated_data)
+        if Profile.objects.filter(username = username).exclude(id = instance.id).exists():
+            raise CustomValidation(detail ='This username is taken',
+                                   field = 'username',
+                                   status_code= status.HTTP_409_CONFLICT)
+        valid_username = username.replace(" ", "")
+        if username != valid_username:
+            raise CustomValidation(detail ='This username has wrong format',
+                                   field = 'username',
+                                   status_code= status.HTTP_400_BAD_REQUEST)
+        validated_data['username']= username.lower()
+        return super().update(instance, validated_data)
+        
         
 class MainProfileSerializer(serializers.ModelSerializer):
     

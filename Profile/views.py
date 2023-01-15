@@ -27,7 +27,10 @@ class EducationView(ListCreateAPIView):
         except KeyError:
             pass
         
-        return super().post(request, *args, **kwargs)
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
     
 class SingleEducationView(RetrieveUpdateDestroyAPIView):
@@ -46,7 +49,10 @@ class SingleEducationView(RetrieveUpdateDestroyAPIView):
                 request.data['school'] = new_school.id
         except KeyError:
             pass
-        return super().patch(request, *args, **kwargs)
+        try:
+            return super().patch(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
 class ExperienceView(ListCreateAPIView):
     
@@ -74,7 +80,10 @@ class ExperienceView(ListCreateAPIView):
         except KeyError:
             pass
             
-        return super().post(request, *args, **kwargs)
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
 class SingleExperienceView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
@@ -82,7 +91,6 @@ class SingleExperienceView(RetrieveUpdateDestroyAPIView):
     
     def get_queryset(self):
         return Experience.objects.filter(user = self.request.user)
-    
     
     def put(self, request, *args, **kwargs):
         request.data.update({"user" : request.user.id})
@@ -101,7 +109,10 @@ class SingleExperienceView(RetrieveUpdateDestroyAPIView):
                 request.data['company'] = new_company.id
         except KeyError:
             pass
-        return super().patch(request, *args, **kwargs)
+        try:
+            return super().put(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
     
 class CourseView(ListCreateAPIView):
@@ -124,8 +135,10 @@ class SingleCourseView(RetrieveUpdateDestroyAPIView):
     
     def patch(self, request, *args, **kwargs):
         request.data.update({"user" : request.user.id})
-        return super().patch(request, *args, **kwargs)
-    
+        try:
+            return super().patch(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
 class TestScoreView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
@@ -136,7 +149,10 @@ class TestScoreView(ListCreateAPIView):
     
     def post(self, request, *args, **kwargs):
         request.data.update({"user" : request.user.id})
-        return super().post(request, *args, **kwargs)
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
 class SingleTestScoreView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
@@ -147,8 +163,11 @@ class SingleTestScoreView(RetrieveUpdateDestroyAPIView):
     
     def patch(self, request, *args, **kwargs):
         request.data.update({"user" : request.user.id})
-        return super().patch(request, *args, **kwargs)
-    
+        try:
+            return super().patch(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
+
     
     
 class SkillView(ListCreateAPIView):
@@ -183,7 +202,10 @@ class SkillView(ListCreateAPIView):
     
     def post(self, request, *args, **kwargs):
         request.data.update({"user" : request.user.id, "owner": True, "anonymous": False})
-        return super().post(request, *args, **kwargs)
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
     
 class SingleSkillView(RetrieveDestroyAPIView):
@@ -194,21 +216,28 @@ class SingleSkillView(RetrieveDestroyAPIView):
         return Skill.objects.filter(user = self.request.user)
     
     
-class UserProfileView(RetrieveUpdateAPIView):
+class UserProfileView(CreateAPIView,RetrieveUpdateAPIView):
     
     permission_classes = [IsAuthenticated]
     serializer_class = ProfileSerializer
     
     def get_object(self):
-        try:
-            return Profile.objects.get(user = self.request.user)
-        except ObjectDoesNotExist :
-            return None
+        return get_object_or_404(Profile,user = self.request.user)
             
+    def post(self, request, *args, **kwargs):
+        request.data.update({"user" : request.user.id})
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
+
     def patch(self, request, *args, **kwargs):
         request.data.update({"user" : request.user.id})
-        return super().patch(request, *args, **kwargs)
-    
+        try:
+            return super().patch(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
+
     
 class MainProfileView(RetrieveUpdateAPIView):
     
@@ -255,7 +284,10 @@ class MainProfileView(RetrieveUpdateAPIView):
             return Response({"error": "You are not allowed to perform this action"}, 
                              status=status.HTTP_403_FORBIDDEN)
         request.data.update({"profile": profile })
-        return super().patch(request, *args, **kwargs)
+        try:
+            return super().patch(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
         
         
 class ProfileViewersView(ListAPIView):
@@ -277,7 +309,10 @@ class EndorsementView(CreateAPIView):
     
     def post(self, request, *args, **kwargs):
         request.data.update({"user" : request.user.id})
-        return super().post(request, *args, **kwargs)
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
         
 class OrganizationView(ListAPIView):
