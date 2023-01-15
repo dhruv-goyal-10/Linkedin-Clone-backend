@@ -124,7 +124,10 @@ class CourseView(ListCreateAPIView):
     
     def post(self, request, *args, **kwargs):
         request.data.update({"user" : request.user.id})
-        return super().post(request, *args, **kwargs)
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
     
 class SingleCourseView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
@@ -283,7 +286,8 @@ class MainProfileView(RetrieveUpdateAPIView):
         if profile.username != username:
             return Response({"error": "You are not allowed to perform this action"}, 
                              status=status.HTTP_403_FORBIDDEN)
-        request.data.update({"profile": profile })
+        request.data.update({"profile": profile,
+                             "owner": True})
         try:
             return super().patch(request, *args, **kwargs)
         except Exception as e:
