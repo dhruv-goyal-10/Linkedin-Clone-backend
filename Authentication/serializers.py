@@ -124,7 +124,7 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs.get('email')
         password = attrs.get('password')
-        
+        email = normalize_email(email)
         try:
             user = User.objects.get(email__iexact = email)
         except:
@@ -197,7 +197,7 @@ class SendEmailOTPSerializer(serializers.Serializer):
     def create(self, validated_data):
         email = validated_data['email']
         context = validated_data['context']
-        
+        email = normalize_email(email)
         if context != "register" and context!= "forget":
             raise CustomValidation(detail="Enter a valid Context",
                                     field= "context",
@@ -217,7 +217,7 @@ class SendEmailOTPSerializer(serializers.Serializer):
         
         
         if EmailOTP.objects.filter(email__iexact=email).exists():
-            otp_object = EmailOTP.objects.get(email=email)
+            otp_object = EmailOTP.objects.get(email__iexact=email)
             
             if otp_object.otp_created_at + timedelta(minutes=1) >= timezone.now():
                 raise CustomValidation(detail="WAIT FOR 1 minute before resending OTP",
@@ -252,7 +252,7 @@ class VerifyEmailOTPSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs.get('email')
         otp = attrs.get('otp')
-        
+        email = normalize_email(email)
         if EmailOTP.objects.filter(email=email).exists():
             otp_object = EmailOTP.objects.get(email=email)
             if otp_object.otp_created_at + timedelta(minutes=5) >= timezone.now():
@@ -352,7 +352,7 @@ class ForgetPasswordSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs.get('email')
         otp = attrs.get('otp')
-       
+        email = normalize_email(email)
         if EmailOTP.objects.filter(email=email).exists():
             otp_object=EmailOTP.objects.get(email=email)
             if otp_object.otp != otp or otp_object.otp_created_at + timedelta(minutes=5) < timezone.now():
