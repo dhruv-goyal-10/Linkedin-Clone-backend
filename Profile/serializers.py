@@ -10,6 +10,11 @@ class OrganizationSerializer(serializers.ModelSerializer):
         model = Organization
         fields = "__all__"
         
+class MyOrganizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = "__all__"
+        
 class EmploymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employment
@@ -32,7 +37,9 @@ class ShortExperienceSerializer(serializers.ModelSerializer):
 class EducationSerializer(serializers.ModelSerializer):
     
     school_data = OrganizationSerializer(source = "school", read_only = True)
-    
+    owner = serializers.SerializerMethodField()
+    anonymous = serializers.SerializerMethodField()
+    viewer = serializers.SerializerMethodField()
     class Meta:
         model = Education
         exclude = ['tagline',]
@@ -42,6 +49,16 @@ class EducationSerializer(serializers.ModelSerializer):
        data = super().to_representation(instance)
        data.pop('user')
        return data
+    
+    
+    def get_owner(self, instance):
+        return self.context['owner']
+    
+    def get_anonymous(self, instance):
+        return self.context['anonymous']
+    
+    def get_viewer(self, instance):
+        return self.context['viewer']
    
     def create(self, validated_data):
         try:
@@ -56,6 +73,15 @@ class EducationSerializer(serializers.ModelSerializer):
         main_profile[0].save()
         return education
     
+    
+class SingleEducationSerializer(serializers.ModelSerializer):
+    
+    school_data = OrganizationSerializer(source = "school", read_only = True)
+    class Meta:
+        model = Education
+        exclude = ['tagline',]
+        extra_kwargs = {'school': {'required': True},}
+
     def update(self, instance, validated_data):
         try:
             return super().update(instance, validated_data)
@@ -67,11 +93,24 @@ class EducationSerializer(serializers.ModelSerializer):
 class ExperienceSerializer(serializers.ModelSerializer):
     
     company_data = OrganizationSerializer(source = "company",read_only = True)
+    owner = serializers.SerializerMethodField()
+    anonymous = serializers.SerializerMethodField()
+    viewer = serializers.SerializerMethodField()
+    
     class Meta:
         model = Experience
         exclude = ['tagline']
         extra_kwargs = {'company': {'required': True},
                         'currently_working': {'required': True},}
+        
+    def get_owner(self, instance):
+        return self.context['owner']
+    
+    def get_anonymous(self, instance):
+        return self.context['anonymous']
+    
+    def get_viewer(self, instance):
+        return self.context['viewer']
         
     def validate(self, attrs):
         try:
@@ -112,6 +151,17 @@ class ExperienceSerializer(serializers.ModelSerializer):
         main_profile[0].save()
         return experience
     
+    
+    
+class SingleExperienceSerializer(serializers.ModelSerializer):
+    
+    company_data = OrganizationSerializer(source = "company",read_only = True)
+    class Meta:
+        model = Experience
+        exclude = ['tagline']
+        extra_kwargs = {'company': {'required': True},
+                        'currently_working': {'required': True},}
+        
     def update(self, instance, validated_data):
         try:
             return super().update(instance, validated_data)
@@ -120,8 +170,28 @@ class ExperienceSerializer(serializers.ModelSerializer):
                                     field= "error",
                                     status_code=status.HTTP_406_NOT_ACCEPTABLE)
     
-    
+
+
 class CourseSerializer(serializers.ModelSerializer):
+    organization_data = OrganizationSerializer(source = "organization",read_only = True)
+    owner = serializers.SerializerMethodField()
+    anonymous = serializers.SerializerMethodField()
+    viewer = serializers.SerializerMethodField()
+        
+    def get_owner(self, instance):
+        return self.context['owner']
+    
+    def get_anonymous(self, instance):
+        return self.context['anonymous']
+    
+    def get_viewer(self, instance):
+        return self.context['viewer']
+    class Meta:
+        model = Course
+        fields = "__all__"
+
+
+class SingleCourseSerializer(serializers.ModelSerializer):
     organization_data = OrganizationSerializer(source = "organization",read_only = True)
     
     class Meta:
@@ -132,6 +202,29 @@ class CourseSerializer(serializers.ModelSerializer):
 class TestScoreSerializer(serializers.ModelSerializer):
     
     organization_data = OrganizationSerializer(source = "organization",read_only = True)
+    owner = serializers.SerializerMethodField()
+    anonymous = serializers.SerializerMethodField()
+    viewer = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = TestScore
+        fields = "__all__"
+
+    def get_owner(self, instance):
+        return self.context['owner']
+    
+    def get_anonymous(self, instance):
+        return self.context['anonymous']
+    
+    def get_viewer(self, instance):
+        return self.context['viewer']
+    
+    
+    
+class SingleTestScoreSerializer(serializers.ModelSerializer):
+    
+    organization_data = OrganizationSerializer(source = "organization",read_only = True)
+    
     class Meta:
         model = TestScore
         fields = "__all__"
@@ -304,3 +397,41 @@ class EndorsementSerializer(serializers.ModelSerializer):
         data =  super().to_representation(instance)
         data['skill_name'] = instance.skill_name
         return data
+
+
+
+class MainPageSerializer(serializers.ModelSerializer):
+    
+    profile = ProfileSerializer(read_only = True)
+    current_school = ShortEducationSerializer(read_only = True)
+    current_company = ShortExperienceSerializer(read_only = True)
+    owner = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = MainProfile
+        exclude = ['id']
+        
+
+    def get_owner(self, instance):
+        return self.context['owner']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        
+        education_data = Education.objects.filter(user=instance.profile.user)[:2]
+        experience_data = Experience.objects.filter(user=instance.profile.user)[:2]
+        skill_data = Skill.objects.filter(user=instance.profile.user)[:3]
+        testscore_data = TestScore.objects.filter(user=instance.profile.user)[:2]
+        course_data = Course.objects.filter(user=instance.profile.user)[:2]
+        
+        data['education_data'] = SingleEducationSerializer(instance=education_data, many=True).data
+        data['experience_data'] = SingleExperienceSerializer(instance=experience_data, many=True).data
+        data['skill_data'] = SingleSkillSerializer(instance=skill_data, many=True).data
+        data['testscore_data'] = SingleTestScoreSerializer(instance=testscore_data, many=True).data
+        data['course_data'] = SingleCourseSerializer(instance=course_data, many=True).data
+        
+        profile_viewers_count = len(data.pop(('viewers')))
+        if data['owner'] is True:
+           data["profile_viewers_count"] = profile_viewers_count
+        return data
+
