@@ -7,6 +7,8 @@ from .models import *
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from itertools import chain
+from django.contrib.postgres.search import SearchVector, SearchQuery
+
 
 class EducationView(ListCreateAPIView):
     
@@ -414,7 +416,11 @@ class OrganizationView(ListAPIView):
     
     permission_classes = [IsAuthenticated]
     serializer_class = OrganizationSerializer
-    queryset = Organization.objects.filter(registered = True)
+    # queryset = Organization.objects.filter(registered = True)
+    
+    def get_queryset(self):
+        search_input = self.request.GET.get('search_input')
+        return Organization.objects.annotate(search=SearchVector('name')).filter(search=search_input)
     
     
 class MyOrganizationView(ListAPIView):
@@ -438,18 +444,26 @@ class EmploymentView(ListAPIView):
     serializer_class = EmploymentSerializer
     queryset = Employment.objects.all()
     
-class SchoolListView(ListAPIView):
+# class SchoolListView(ListAPIView):
     
-    permission_classes = [IsAuthenticated]
-    serializer_class = OrganizationSerializer
-    queryset = Organization.objects.filter(registered = True, type = "School")
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = OrganizationSerializer
+#     # queryset = Organization.objects.filter(registered = True, type = "School")
     
-class CompanyListView(ListAPIView):
+#     def get_queryset(self):
+#         search_input = self.request.GET.get('search_input')
+#         return Organization.objects.annotate(search=SearchVector('name')).filter(search=search_input)
+
+class OrganizationListView(ListAPIView):
     
     permission_classes = [IsAuthenticated]
     serializer_class = OrganizationSerializer
     queryset = Organization.objects.filter(registered = True, type = "Company")
     
+    def get_queryset(self):
+        search_input = self.request.GET.get('search_input')
+        return Organization.objects.annotate(search=SearchVector('name')).filter(search=search_input)
+
     
 class MainPageView(RetrieveUpdateAPIView):
     

@@ -4,8 +4,8 @@ from Profile.views import *
 urlpatterns = [
     path('organization/', OrganizationView.as_view()),
     path('myorganization/', MyOrganizationView.as_view()),
-    path('school/', SchoolListView.as_view()),
-    path('company/', CompanyListView.as_view()),
+    # path('school/', SchoolListView.as_view()),
+    # path('company/', CompanyListView.as_view()),
     path('employment/', EmploymentView.as_view()),
     
     path('education/', EducationView.as_view()),
