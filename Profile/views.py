@@ -7,7 +7,9 @@ from .models import *
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from itertools import chain
-from django.contrib.postgres.search import SearchVector, SearchQuery
+from django.contrib.postgres.search import SearchVector, SearchQuery, TrigramSimilarity
+from rest_framework.views import APIView
+
 
 
 class EducationView(ListCreateAPIView):
@@ -416,27 +418,22 @@ class OrganizationView(ListAPIView):
     
     permission_classes = [IsAuthenticated]
     serializer_class = OrganizationSerializer
-    # queryset = Organization.objects.filter(registered = True)
     
     def get_queryset(self):
         search_input = self.request.GET.get('search_input')
-        return Organization.objects.annotate(search=SearchVector('name')).filter(search=search_input)
+        return Organization.objects.annotate(similarity=TrigramSimilarity('name',search_input)+TrigramSimilarity('type',search_input)).filter(similarity__gt=0.15, registered= True).order_by('-similarity')
+
     
-    
-class MyOrganizationView(ListAPIView):
+class MyOrganizationView(APIView):
     
     permission_classes = [IsAuthenticated]
-    serializer_class = MyOrganizationSerializer
     
-    queryset = Organization.objects.filter(registered = True)
-    
-    def get_queryset(self):
-        # profile = get_object_or_404(Profile, user = self.request.user)
+    def get(self, request, *args, **kwargs):
         education = Education.objects.filter(user = self.request.user)
-        experiences = Experience.objects.filter(user = self.request.user)
-        return Organization.objects.filter()
-        return super().get_queryset()
-
+        experience = Experience.objects.filter(user = self.request.user)
+        education_data = ShortEducationSerializer(instance=education, many = True).data
+        experience_data = ShortExperienceSerializer(instance = experience, many=True).data
+        return Response({"my_organizations" : education_data + experience_data})
         
 class EmploymentView(ListAPIView):
     
@@ -444,15 +441,6 @@ class EmploymentView(ListAPIView):
     serializer_class = EmploymentSerializer
     queryset = Employment.objects.all()
     
-# class SchoolListView(ListAPIView):
-    
-#     permission_classes = [IsAuthenticated]
-#     serializer_class = OrganizationSerializer
-#     # queryset = Organization.objects.filter(registered = True, type = "School")
-    
-#     def get_queryset(self):
-#         search_input = self.request.GET.get('search_input')
-#         return Organization.objects.annotate(search=SearchVector('name')).filter(search=search_input)
 
 class OrganizationListView(ListAPIView):
     
@@ -497,3 +485,14 @@ class MainPageView(RetrieveUpdateAPIView):
             profile = get_object_or_404(Profile, username=username)
             self.request.data.update({"owner": False})
             return MainProfile.objects.get_or_create(profile = profile)[0]
+        
+        
+class SkillsListView(ListAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = SkillsListSerializer
+
+    def get_queryset(self):
+        
+        search_input = self.request.GET.get('search_input')
+        return SkillsList.objects.annotate(similarity=TrigramSimilarity('type',search_input,)).filter(similarity__gt=0.15).order_by('-similarity')

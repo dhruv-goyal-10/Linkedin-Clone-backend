@@ -29,6 +29,7 @@ urlpatterns = [
     path('viewers/', ProfileViewersView.as_view()),
     
     path('skill/endorse/', EndorsementView.as_view()),
+    path('skill/list/', SkillsListView.as_view()),
     
     path('mainpage/', MainPageView.as_view()),
 ]
