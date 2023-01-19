@@ -323,6 +323,7 @@ class UserProfileView(CreateAPIView,RetrieveUpdateAPIView):
         return get_object_or_404(Profile,user = self.request.user)
             
     def post(self, request, *args, **kwargs):
+        request.data._mutable = True
         request.data.update({"user" : request.user.id})
         try:
             return super().post(request, *args, **kwargs)
@@ -330,6 +331,7 @@ class UserProfileView(CreateAPIView,RetrieveUpdateAPIView):
             return Response({"detail": f"{e}"}, status= status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, *args, **kwargs):
+        request.data._mutable = True
         request.data.update({"user" : request.user.id})
         try:
             return super().patch(request, *args, **kwargs)
@@ -341,10 +343,6 @@ class MainProfileView(RetrieveUpdateAPIView):
     
     permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = MainProfileSerializer
-    
-    
-    def get_serializer_context(self):
-        return {'owner': self.request.data['owner']}
     
 
     def get_object(self):
@@ -376,6 +374,7 @@ class MainProfileView(RetrieveUpdateAPIView):
         
 
     def patch(self, request, *args, **kwargs):
+        request.data._mutable = True
         profile = get_object_or_404(Profile, user = self.request.user)
         username = self.request.GET.get('username')
         if profile.username != username:
@@ -458,9 +457,6 @@ class MainPageView(RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = MainPageSerializer
     
-    
-    def get_serializer_context(self):
-        return {'owner': self.request.data['owner']}
     
     def get_object(self):
         

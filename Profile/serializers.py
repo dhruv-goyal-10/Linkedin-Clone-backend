@@ -1,10 +1,25 @@
 from rest_framework import serializers, status
 from .models import *
+from Network.models import *
 from Authentication.utils import CustomValidation
 import cloudinary
 from django.shortcuts import get_object_or_404
 from django.db.utils import IntegrityError
 
+
+
+class MutualConnectionsSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = User
+        fields = "__all__"
+        
+    def to_representation(self, instance):
+       
+        profile = get_object_or_404(Profile, user = instance.id)
+        data=ShortProfileSerializer(instance=profile, many = False).data
+        
+        return data
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
@@ -281,6 +296,11 @@ class ShortProfileSerializer(serializers.ModelSerializer):
         data ['name'] = instance.full_name
         return data
     
+    def create(self, validated_data):
+        # self.request.data._mutable = True
+        self.request.data._mutable = False
+        return super().create(validated_data)
+    
     
 class SingleSkillSerializer(serializers.ModelSerializer):
     
@@ -306,7 +326,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Profile
-        exclude = ['id', 'phone_number']
+        exclude = ['id', 'phone_number', 'second_degrees', 'third_degrees']
         
         
     def update(self, instance, validated_data):
@@ -340,15 +360,28 @@ class MainProfileSerializer(serializers.ModelSerializer):
         
     
     def get_owner(self, instance):
-        return self.context['owner']
+        return self.context['request'].data['owner']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        profile_viewers_count = len(data.pop(('viewers')))
+        profile_viewers_count = len(data.pop('viewers'))
+        
+        data['followers_count'] = len(data['profile'].pop('followers'))
+        data['connections_count'] = len(data['profile'].pop('first_degrees'))
         if data['owner'] is True:
            data["profile_viewers_count"] = profile_viewers_count
+           following_count = Follow.objects.filter(follower = self.context['request'].user).count()
+           data['following_count'] = following_count
+        else:
+            owner_profile = instance.profile
+            viewer_profile = get_object_or_404(Profile,user = self.context['request'].user)
+            queryset = owner_profile.first_degrees.all()
+            queryset = queryset.intersection(queryset, viewer_profile.first_degrees.all())
+            data['mutual_connections_count'] = queryset.count()
+            data['some_mutual_connections'] = MutualConnectionsSerializer(instance = queryset[:3], many=True).data
         return data
 
+        
 class ProfileViewersSerializer(serializers.ModelSerializer):
     
     viewer = ShortProfileSerializer(many = False, read_only = True)
@@ -361,13 +394,14 @@ class ProfileViewersSerializer(serializers.ModelSerializer):
         
         data = super().to_representation(instance)
         data['viewed_time'] = instance.viewed_time.strftime("%Y-%m-%d %H:%M:%S")
-        
+
         return data
         
 class EndorsementSerializer(serializers.ModelSerializer):
     
     id = serializers.IntegerField()
     endorsed_by = ShortProfileSerializer(many = True, read_only = True)
+    
     class Meta:
         model = Skill
         fields = "__all__"
@@ -411,9 +445,10 @@ class MainPageSerializer(serializers.ModelSerializer):
         model = MainProfile
         exclude = ['id']
         
-
+        
     def get_owner(self, instance):
-        return self.context['owner']
+        return self.context['request'].data['owner']
+
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -430,9 +465,22 @@ class MainPageSerializer(serializers.ModelSerializer):
         data['testscore_data'] = SingleTestScoreSerializer(instance=testscore_data, many=True).data
         data['course_data'] = SingleCourseSerializer(instance=course_data, many=True).data
         
-        profile_viewers_count = len(data.pop(('viewers')))
+        profile_viewers_count = len(data.pop('viewers'))
+        
+        data['followers_count'] = len(data['profile'].pop('followers'))
+        data['connections_count'] = len(data['profile'].pop('first_degrees'))
+        
         if data['owner'] is True:
            data["profile_viewers_count"] = profile_viewers_count
+           following_count = Follow.objects.filter(follower = self.context['request'].user).count()
+           data['following_count'] = following_count
+        else:
+            owner_profile = instance.profile
+            viewer_profile = get_object_or_404(Profile,user = self.context['request'].user)
+            queryset = owner_profile.first_degrees.all()
+            queryset = queryset.intersection(queryset, viewer_profile.first_degrees.all())
+            data['mutual_connections_count'] = queryset.count()
+            data['some_mutual_connections'] = MutualConnectionsSerializer(instance = queryset[:3], many=True).data
         return data
     
     
@@ -465,3 +513,6 @@ class ShortExperienceSerializer(serializers.ModelSerializer):
         data= super().to_representation(instance)
         data['organization'] = data.pop('company')
         return data
+
+    
+

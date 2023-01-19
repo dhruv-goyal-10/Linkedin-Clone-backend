@@ -50,8 +50,10 @@ class Profile(models.Model):
     phone_number = models.BigIntegerField(validators=[MinValueValidator(1000000000), MaxValueValidator(9999999999)], blank = True, null = True)
     username = models.CharField(max_length=100, blank = True, null = True, unique=True)
     followers = models.ManyToManyField(User, through='Network.Follow',related_name="following", blank=True)
-    first_degree = models.ManyToManyField(User, through='Network.FirstConnections', related_name="first_degree", blank=True)
-    second_degree = models.ManyToManyField(User, through='Network.SecondConnections', related_name="second_degree", blank=True)
+    first_degrees = models.ManyToManyField(User, through='Network.FirstConnections', related_name="first_degree", blank=True)
+    second_degrees = models.ManyToManyField(User, through='Network.SecondConnections', related_name="second_degree", blank=True)
+    third_degrees = models.ManyToManyField(User, through='Network.ThirdConnections', related_name="third_degree", blank=True)
+    
     
     @property
     def full_name(self):
