@@ -484,4 +484,35 @@ class MainPageSerializer(serializers.ModelSerializer):
         return data
     
     
+class SkillsListSerializer(serializers.ModelSerializer):
     
+    
+    class Meta:
+        model = SkillsList
+        fields = "__all__"
+
+
+class ShortEducationSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Education
+        fields = ['tagline','school']
+        
+    def to_representation(self, instance):
+        data= super().to_representation(instance)
+        data['organization'] = data.pop('school')
+        return data
+
+class ShortExperienceSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Experience
+        fields = ['tagline','company']
+        
+    def to_representation(self, instance):
+        data= super().to_representation(instance)
+        data['organization'] = data.pop('company')
+        return data
+
+    
+

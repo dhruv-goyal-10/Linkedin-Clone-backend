@@ -198,3 +198,11 @@ class ProfileView(models.Model):
     def __str__(self):
         return f'{self.viewer.full_name} --> {self.viewed_profile.profile.full_name}'
     
+    
+    
+class SkillsList(models.Model):
+    
+    type = models.CharField(max_length=200)
+    
+    def __str__(self):
+        return f'{self.type}'
