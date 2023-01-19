@@ -3,7 +3,6 @@ from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
-import datetime
 
 class UserManager(BaseUserManager):
     def create_user(self, email,password=None):
@@ -53,7 +52,7 @@ class User(AbstractBaseUser):
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return self.email
+        return f"{self.email}"
 
     def has_perm(self, perm, obj=None):
         return True
