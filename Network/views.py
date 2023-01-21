@@ -109,10 +109,12 @@ class ConnectionRemoveView(views.APIView):
         try:
             username = self.request.data['username']
             user1 = self.request.user
-            profile1 = Profile.objects.get(user = user1)
-            profile2 = Profile.objects.get(username = username)
+            profile1 = get_object_or_404(Profile, user=user1)
+            # profile1 = Profile.objects.get(user = user1)
+            # profile2 = Profile.objects.get(username = username)
+            profile2 = get_object_or_404(Profile, username=username)
             user2 = profile2.user
-            if not profile1.first_degrees.filter(id = user1.id).exists():
+            if not profile1.first_degrees.filter(id = user2.id).exists():
                 return Response({"detail": "You already don't have any connection with this profile."}, status=status.HTTP_400_BAD_REQUEST)
             profile1.first_degrees.remove(user2)
             profile2.first_degrees.remove(user1)
