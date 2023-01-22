@@ -37,10 +37,8 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         exclude = ['saved_by', 'viewed_by']
         
-        
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        
         viewer_profile = get_object_or_404(Profile, user = self.context['request'].user)
         post_reaction = PostReaction.objects.filter(post = instance,
                                                    reacted_by = viewer_profile)
@@ -54,8 +52,17 @@ class PostSerializer(serializers.ModelSerializer):
         if post_reaction.exists():
             data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0],
                                                                 context = {"request": self.context['request']}).data
-        if instance.parent_post is not None:
-            data['parent_post_data'] = PostSerializer(instance = instance.parent_post).data
+            
+        # ---- To avoid loop of continous serialization --------
+        count = 0
+        try:
+            count = self.context['count']
+        except KeyError:
+            pass
+        # ------------------------------------------------------
+        if instance.parent_post is not None and count == 0:
+            data['parent_post_data'] = PostSerializer(instance = instance.parent_post,
+                                                      context = {"request": self.context['request'], "count": 1}).data
         
         post_images = PostImages.objects.filter(post = instance)
         data['images_data'] = PostImageSerializer(instance = post_images , many = True).data

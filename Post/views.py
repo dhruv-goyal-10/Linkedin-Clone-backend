@@ -315,7 +315,8 @@ class RePostView(CreateAPIView):
         if request.data.get('parent_post') is None:
             return Response({"detail": "For reposting provide parent_post field"})
         request.data.update({"post_owner" : Profile.objects.get(user = request.user).id,
-                             "parent_post" : request.data.get('parent_post')})
+                             "parent_post" : request.data.get('parent_post'),
+                             "user" : self.request.user,})
         return super().post(request, *args, **kwargs)
 
 
