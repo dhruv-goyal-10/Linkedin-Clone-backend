@@ -48,10 +48,12 @@ class PostSerializer(serializers.ModelSerializer):
         data['self_reaction'] = False
         if post_reaction.exists():
             data['self_reaction'] = True
-            data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0]).data
+            data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0],
+                                                                context = {"request": self.request}).data
         
         if post_reaction.exists():
-            data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0]).data
+            data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0],
+                                                                context = {"request": self.request}).data
         if instance.parent_post is not None:
             data['parent_post_data'] = PostSerializer(instance = instance.parent_post).data
         
@@ -138,6 +140,16 @@ class PostCommentSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        
+        viewer_profile = get_object_or_404(Profile, user = self.context['request'].user)
+        comment_reaction = CommentReaction.objects.filter(comment = instance,
+                                                   reaction_owner = viewer_profile)
+        
+        data['self_reaction'] = False
+        if comment_reaction.exists():
+            data['self_reaction'] = True
+            data['self_reaction_data'] = CommentReactionSerializer(instance=comment_reaction[0],
+                                                                   context = {"request": self.context['request']}).data
         data['created_at'] = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
         data['reactions_count'] = len(data.pop('reacted_by'))
         data['replies_count'] = len(data.pop('replied_by'))
@@ -156,6 +168,15 @@ class SinglePostCommentSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        viewer_profile = get_object_or_404(Profile, user = self.context['request'].user)
+        comment_reaction = CommentReaction.objects.filter(comment = instance,
+                                                         reaction_owner = viewer_profile)
+        
+        data['self_reaction'] = False
+        if comment_reaction.exists():
+            data['self_reaction'] = True
+            data['self_reaction_data'] = CommentReactionSerializer(instance=comment_reaction[0],
+                                                                   context = {"request": self.context['request']}).data
         data['created_at'] = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
         data['reactions_count'] = len(data.pop('reacted_by'))
         data['replies_count'] = len(data.pop('replied_by'))
@@ -195,6 +216,15 @@ class ReplySerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        viewer_profile = get_object_or_404(Profile, user = self.context['request'].user)
+        reply_reaction = ReplyReaction.objects.filter(comment_reply = instance,
+                                                   reaction_owner = viewer_profile)
+        
+        data['self_reaction'] = False
+        if reply_reaction.exists():
+            data['self_reaction'] = True
+            data['self_reaction_data'] = ReplyReactionSerializer(instance=reply_reaction[0],
+                                                                 context = {"request": self.context['request']}).data
         data['created_at'] = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
         data['reactions_count'] = len(data.pop('reacted_by'))
         return data
@@ -211,9 +241,21 @@ class SingleReplySerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        viewer_profile = get_object_or_404(Profile, user = self.context['request'].user)
+        reply_reaction = ReplyReaction.objects.filter(comment_reply = instance,
+                                                    reaction_owner = viewer_profile)
+        
+        data['self_reaction'] = False
+        if reply_reaction.exists():
+            data['self_reaction'] = True
+            data['self_reaction_data'] = ReplyReactionSerializer(instance=reply_reaction[0],
+                                                                 context = {"request": self.context['request']}).data
+        
         data['created_at'] = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
-        data['comment_data'] = PostCommentSerializer(instance=instance.comment).data
-        data['post_data'] = PostSerializer(instance=instance.comment.post).data
+        data['comment_data'] = PostCommentSerializer(instance=instance.comment,
+                                                     context = {"request": self.context['request']}).data
+        data['post_data'] = PostSerializer(instance=instance.comment.post,
+                                           context = {"request": self.context['request']}).data
         data['reactions_count'] = len(data.pop('reacted_by'))
         return data
     
@@ -237,9 +279,12 @@ class SingleReplyReactionSerializer(serializers.ModelSerializer):
         
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['comment_data'] = PostCommentSerializer(instance=instance.comment_reply.comment).data
-        data['post_data'] = PostSerializer(instance=instance.comment_reply.comment.post).data
-        data['reply_data'] = ReplySerializer(instance=instance.comment_reply).data
+        data['comment_data'] = PostCommentSerializer(instance=instance.comment_reply.comment,
+                                                     context = {"request": self.context['request']}).data
+        data['post_data'] = PostSerializer(instance=instance.comment_reply.comment.post,
+                                           context = {"request": self.context['request']}).data
+        data['reply_data'] = ReplySerializer(instance=instance.comment_reply,
+                                             context = {"request": self.context['request']}).data
         return data
     
     
