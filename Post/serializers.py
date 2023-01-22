@@ -49,11 +49,11 @@ class PostSerializer(serializers.ModelSerializer):
         if post_reaction.exists():
             data['self_reaction'] = True
             data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0],
-                                                                context = {"request": self.request}).data
+                                                                context = {"request": self.context['request']}).data
         
         if post_reaction.exists():
             data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0],
-                                                                context = {"request": self.request}).data
+                                                                context = {"request": self.context['request']}).data
         if instance.parent_post is not None:
             data['parent_post_data'] = PostSerializer(instance = instance.parent_post).data
         
