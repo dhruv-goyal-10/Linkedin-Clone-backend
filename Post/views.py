@@ -23,13 +23,14 @@ class PostView(CreateAPIView):
     
     def post(self, request, *args, **kwargs):
         
+        print(request.data)
         try:
             request.data._mutable = True
         except AttributeError:
             pass
         request.data.update({"post_owner" : Profile.objects.get(user = request.user).id})
         return super().post(request, *args, **kwargs)
-    
+        
     
 class SinglePostView(RetrieveDestroyAPIView):
     
@@ -45,7 +46,7 @@ class SinglePostView(RetrieveDestroyAPIView):
             return Response({"detail": "You are not allowed to perform this action"},
                             status = status.HTTP_405_METHOD_NOT_ALLOWED)
         return super().delete(request, *args, **kwargs)
-        
+
 
 class PostReactionView(ListCreateAPIView):
     

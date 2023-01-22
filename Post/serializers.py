@@ -55,26 +55,28 @@ class PostSerializer(serializers.ModelSerializer):
         
         
     def create(self, validated_data):
+        
+        try:
+            images = validated_data.pop('images')
+        except KeyError:
+            images = []
+        
         post = super().create(validated_data)
+        
         topics = set(re.findall(r'\B#\w*[a-zA-Z]+\w*', validated_data['text']))
         for topic in topics:
             hashtag = HashTag.objects.get_or_create(topic = topic)[0]
             hashtag.associated_posts.add(post)
-        try:
-            images = validated_data.pop('images')
-            post_images_list=[]
-            for image in images: 
-                post_images_list.append(
-                    PostImages(post = post, image = image)
-                )
-            if post_images_list:
-                PostImages.objects.bulk_create(post_images_list)
-        except KeyError:
-            pass
+        
+        post_images_list=[]
+        for image in images: 
+            post_images_list.append(
+                PostImages(post = post, image = image)
+            )
+        if post_images_list:
+            PostImages.objects.bulk_create(post_images_list)
         return post
-    
-    
-    
+
 
    
    
