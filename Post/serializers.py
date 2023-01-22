@@ -266,6 +266,11 @@ class PostBookmarkSerializer(serializers.ModelSerializer):
             post.saved_by.add(profile)
         return post
     
+        
+    def to_representation(self, instance):
+        data = PostSerializer(instance = instance,context = {"request": self.context['request']} ).data
+        return data
+
 
 # class HashTagFollowSerializer(serializers.ModelSerializer):
     
