@@ -28,7 +28,7 @@ class PostSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
         child=serializers.ImageField(), write_only = True, required = False )
     
-    post_owner_data = ShortProfileSerializer(source = "post_owner")
+    post_owner_data = ShortProfileSerializer(source = "post_owner", read_only = True)
     
     class Meta:
         model = Post
