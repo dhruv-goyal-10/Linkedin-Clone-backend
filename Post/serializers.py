@@ -23,6 +23,9 @@ class HashTagSerializer(serializers.ModelSerializer):
         fields = ['topic']   
        
        
+       
+       
+       
 class PostSerializer(serializers.ModelSerializer):
     
     images = serializers.ListField(
@@ -37,20 +40,36 @@ class PostSerializer(serializers.ModelSerializer):
         
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        post_images = PostImages.objects.filter(post = instance)
+        
+        viewer_profile = get_object_or_404(Profile, user = self.context['request'].user)
+        post_reaction = PostReaction.objects.filter(post = instance,
+                                                   reacted_by = viewer_profile)
+        
+        data['self_reaction'] = False
+        if post_reaction.exists():
+            data['self_reaction'] = True
+            data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0]).data
+        
+        if post_reaction.exists():
+            data['self_reaction_data'] = PostReactionSerializer(instance=post_reaction[0]).data
         if instance.parent_post is not None:
             data['parent_post_data'] = PostSerializer(instance = instance.parent_post).data
-        data['created_at'] = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        
+        post_images = PostImages.objects.filter(post = instance)
         data['images_data'] = PostImageSerializer(instance = post_images , many = True).data
+        
+        data['created_at'] = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
         data['reactions_count'] = len(data.pop('reacted_by'))
         data['reacted_by'] = ShortProfileSerializer(instance = instance.reacted_by, many = True).data[:2]
         data['hashtags'] = HashTagSerializer(instance = instance.hashtags.all(), many = True).data
         data['reposts_count'] = Post.objects.filter(parent_post = instance).count()
+        
         post_comments = Comment.objects.filter(post = instance)
         replies_count=0
         for post_comment in post_comments:
             replies_count += post_comment.commentreply_set.all().count()
         data['comments_count'] = len(data.pop('commented_by')) + replies_count
+        
         return data
         
         

@@ -11,10 +11,6 @@ from django.contrib.postgres.search import SearchVector, SearchQuery, TrigramSim
 from rest_framework.views import APIView
 
 
-
-
-
-
 class PostView(CreateAPIView):
     
     permission_classes = [IsAuthenticated]
@@ -23,14 +19,14 @@ class PostView(CreateAPIView):
     
     def post(self, request, *args, **kwargs):
         
-        print(request.data)
         try:
             request.data._mutable = True
         except AttributeError:
             pass
-        request.data.update({"post_owner" : Profile.objects.get(user = request.user).id})
+        request.data.update({"post_owner" : Profile.objects.get(user = request.user).id,
+                             "parent_post": None})
         return super().post(request, *args, **kwargs)
-        
+
     
 class SinglePostView(RetrieveDestroyAPIView):
     
@@ -277,25 +273,26 @@ class FeedView(views.APIView):
             
             for reaction in profile.post_reactions.all():
                 if not self.check_post_exists_in_response(reaction.post,response):
-                    data = PostSerializer(instance = reaction.post).data
+                    
+                    data = PostSerializer(instance = reaction.post, context = {"request": self.request}).data
                     data['message'] = f"{reaction.post.post_owner.full_name} reacted to this Post."
                     response.append(data)
 
             for comment in profile.comment_set.all():
                 if not self.check_post_exists_in_response(comment.post,response):
-                    data = PostSerializer(instance = comment.post).data
-                    data['message'] = f"{reaction.post.post_owner.full_name} commented on this Post."
+                    data = PostSerializer(instance = comment.post, context = {"request": self.request}).data
+                    data['message'] = f"{comment.post.post_owner.full_name} commented on this Post."
                     response.append(data)
                     
             for post in profile.created_posts.all():
                 if not self.check_post_exists_in_response(post,response):
-                    data = PostSerializer(instance = post).data
+                    data = PostSerializer(instance = post, context = {"request": self.request}).data
                     response.append(data)
                     
         for hashtag in user_profile.followed_hastags.all():
             for post in hashtag.associated_posts.filter().exclude(post_owner = user_profile):
                 if not self.check_post_exists_in_response(post,response):
-                    data = PostSerializer(instance = post).data
+                    data = PostSerializer(instance = post, context = {"request": self.request}).data
                     data['message'] = f" A post related to {hashtag.topic} "
                     response.append(data)
                     
