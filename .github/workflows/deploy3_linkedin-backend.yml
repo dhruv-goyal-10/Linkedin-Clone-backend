@@ -7,7 +7,7 @@ name: Build and deploy Python app to Azure Web App - linkedin-backend
 on:
   push:
     branches:
-      - deploy3
+      - Post
   workflow_dispatch:
 
 jobs:

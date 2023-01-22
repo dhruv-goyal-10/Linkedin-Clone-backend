@@ -21,4 +21,5 @@ urlpatterns = [
     path('auth/', include('Authentication.urls')),
     path('profile/', include('Profile.urls')),
     path('network/', include('Network.urls')),
+    path('post/', include('Post.urls')),
 ]

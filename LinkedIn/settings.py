@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'Authentication',
     'Profile',
-    'Network'
+    'Network',
+    'Post',
 ]
 
 MIDDLEWARE = [
