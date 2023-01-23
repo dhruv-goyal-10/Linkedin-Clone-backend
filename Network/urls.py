@@ -14,4 +14,5 @@ urlpatterns = [
     path('following/<int:pk>/', DeleteFollowingView.as_view()),
     path('followers/', FollowersView.as_view()),
     path('connection/mutual/', MutualConnectionsView.as_view()),
+    path('unfollow/', UnfollowView.as_view()),
     ]

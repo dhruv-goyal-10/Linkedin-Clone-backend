@@ -191,5 +191,22 @@ class MutualConnectionsView(ListAPIView):
             queryset = queryset.intersection(queryset, viewer_profile.first_degrees.all())
             return queryset
             
+            
+            
+
+class UnfollowView(views.APIView):
     
+    permission_classes = [IsAuthenticated]
     
+    def post(self, request, *args, **kwargs):
+        
+        username = request.data.get('username')
+        if username is None:
+            return Response({"detail": "Please provide the username."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        profile = get_object_or_404(Profile, username = username)
+        if not profile.followers.filter(id = self.request.user.id).exists():
+            return Response({"detail": "You are not following this user"}, status=status.HTTP_400_BAD_REQUEST)
+
+        profile.followers.remove(self.request.user)
+        return Response({"detail": "You have successfully unfollowed the user"}, status=status.HTTP_200_OK)
