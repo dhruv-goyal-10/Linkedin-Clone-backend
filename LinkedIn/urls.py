@@ -22,4 +22,5 @@ urlpatterns = [
     path('profile/', include('Profile.urls')),
     path('network/', include('Network.urls')),
     path('post/', include('Post.urls')),
+    path('notification/', include('Notification.urls')),
 ]

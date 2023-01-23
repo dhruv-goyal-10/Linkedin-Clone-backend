@@ -83,7 +83,7 @@ class PostReactionView(ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         request.data.update({"reacted_by" : Profile.objects.get(user = request.user).id})
         return super().post(request, *args, **kwargs)
-
+    
     
 class SinglePostReactionView(RetrieveUpdateDestroyAPIView):
     
@@ -292,6 +292,7 @@ def check_post_exists_in_response(post, response):
             if post.id == item['id']:
                 return True
         return False  
+    
 class FeedView(views.APIView, PaginationHandlerMixin):
     
     permission_classes = [IsAuthenticated]

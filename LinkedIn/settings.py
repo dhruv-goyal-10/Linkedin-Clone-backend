@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'Profile',
     'Network',
     'Post',
+    'Notification'
 ]
 
 MIDDLEWARE = [

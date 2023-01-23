@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from itertools import chain
 from django.contrib.postgres.search import SearchVector, SearchQuery, TrigramSimilarity
 from rest_framework.views import APIView
-
+from Notification.models import *
 
 
 class EducationView(ListCreateAPIView):
@@ -360,8 +360,15 @@ class MainProfileView(RetrieveUpdateAPIView):
                 profile = get_object_or_404(Profile, username=username)
                 main_profile = MainProfile.objects.get_or_create(profile = profile)[0]
                 viewer_profile = Profile.objects.get_or_create(user = self.request.user)[0]
-                ProfileView.objects.update_or_create(viewer = viewer_profile,
-                                                     viewed_profile = main_profile)
+                profile_view = ProfileView.objects.update_or_create(viewer = viewer_profile,
+                                                                    viewed_profile = main_profile)
+
+                noti = Notification.objects.get_or_create(action = profile_view[0].id,
+                                            target = profile,
+                                            source = viewer_profile,
+                                            type = NotificationType.objects.get(type = "profile_view"))[0]
+                noti.seen = False
+                noti.save()
                 self.request.data.update({"owner": False})
                 return main_profile
 
@@ -470,17 +477,25 @@ class MainPageView(RetrieveUpdateAPIView):
                 profile = get_object_or_404(Profile, username=username)
                 main_profile = MainProfile.objects.get_or_create(profile = profile)[0]
                 viewer_profile = Profile.objects.get_or_create(user = self.request.user)[0]
-                ProfileView.objects.update_or_create(viewer = viewer_profile,
-                                                     viewed_profile = main_profile)
+                profile_view = ProfileView.objects.update_or_create(viewer = viewer_profile,
+                                                                    viewed_profile = main_profile)
+
+                noti = Notification.objects.get_or_create(action = profile_view[0].id,
+                                            target = profile,
+                                            source = viewer_profile,
+                                            type = NotificationType.objects.get(type = "profile_view"))[0]
+                noti.seen = False
+                noti.save()
+
                 self.request.data.update({"owner": False})
                 return main_profile
-
+                
         except TypeError:
             username = self.request.GET.get('username')
-            profile = get_object_or_404(Profile, username=username)
+            profile = get_object_or_404(Profile, username = username)
             self.request.data.update({"owner": False})
             return MainProfile.objects.get_or_create(profile = profile)[0]
-        
+
         
 class SkillsListView(ListAPIView):
     

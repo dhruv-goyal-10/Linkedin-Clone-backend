@@ -523,7 +523,6 @@ class ProfileSearchSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # print(self.context['request']).user.id)
         data['is_following'] = False
         if instance.followers.filter(id = self.context['request'].user.id).exists():
             data['is_following'] = True

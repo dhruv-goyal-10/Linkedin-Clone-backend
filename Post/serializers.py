@@ -6,7 +6,7 @@ from Authentication.utils import CustomValidation
 from django.shortcuts import get_object_or_404
 from django.db.utils import IntegrityError
 import re
- 
+from Notification.models import *
  
 class PostImageSerializer(serializers.ModelSerializer):
     
@@ -123,6 +123,15 @@ class PostReactionSerializer(serializers.ModelSerializer):
         model = PostReaction
         fields = "__all__"
         
+    
+    def create(self, validated_data):
+        post_reaction = super().create(validated_data)
+        Notification.objects.create(action = post_reaction.id,
+                                    target = post_reaction.post.post_owner,
+                                    source = post_reaction.reacted_by,
+                                    type = NotificationType.objects.get(type = "post_reaction"))
+        return post_reaction
+        
         
 class SinglePostReactionSerializer(serializers.ModelSerializer):
     
@@ -162,6 +171,14 @@ class PostCommentSerializer(serializers.ModelSerializer):
         data['replies_count'] = len(data.pop('replied_by'))
         return data
     
+    def create(self, validated_data):
+        comment =  super().create(validated_data)
+        Notification.objects.create(action = comment.id,
+                                    target = comment.post.post_owner,
+                                    source = comment.comment_owner,
+                                    type = NotificationType.objects.get(type = "commented"))
+        return comment
+    
 class SinglePostCommentSerializer(serializers.ModelSerializer):
     
     comment_owner_profile = ShortProfileSerializer(source = "comment_owner",read_only = True)
@@ -199,7 +216,13 @@ class CommentReactionSerializer(serializers.ModelSerializer):
         model = CommentReaction
         fields = "__all__"
         
-        
+    def create(self, validated_data):
+        comment_reaction =  super().create(validated_data)
+        Notification.objects.create(action = comment_reaction.id,
+                                    target = comment_reaction.comment.post.post_owner,
+                                    source = comment_reaction.reaction_owner,
+                                    type = NotificationType.objects.get(type = "comment_reaction"))
+        return comment_reaction
 class SingleCommentReactionSerializer(serializers.ModelSerializer):
     
     reaction_owner_profile = ShortProfileSerializer(source = "reaction_owner",read_only = True)
@@ -236,7 +259,13 @@ class ReplySerializer(serializers.ModelSerializer):
         data['reactions_count'] = len(data.pop('reacted_by'))
         return data
 
-    
+    def create(self, validated_data):
+        reply = super().create(validated_data)
+        Notification.objects.create(action = reply.id,
+                                    target = reply.comment.post.post_owner,
+                                    source = reply.reply_owner,
+                                    type = NotificationType.objects.get(type = "reply"))
+        return reply
     
 class SingleReplySerializer(serializers.ModelSerializer):
     
@@ -274,6 +303,14 @@ class ReplyReactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReplyReaction
         fields = "__all__"
+        
+    def create(self, validated_data):
+        reply_reaction = super().create(validated_data)
+        Notification.objects.create(action = reply_reaction.id,
+                                    target = reply_reaction.comment_reply.comment.post.post_owner,
+                                    source = reply_reaction.reaction_owner,
+                                    type = NotificationType.objects.get(type = "reply_reaction"))
+        return reply_reaction
         
 class SingleReplyReactionSerializer(serializers.ModelSerializer):
     
@@ -343,7 +380,6 @@ class ActivitySerializer(serializers.ModelSerializer):
         exclude = ['saved_by', 'viewed_by']
         
     def to_representation(self, instance):
-        
         
         if type(instance) is Post:
             data = PostSerializer(instance = instance, context = {"request": self.context['request']}).data
