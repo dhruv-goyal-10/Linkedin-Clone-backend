@@ -507,7 +507,7 @@ class ProfileSearchView(ListAPIView):
 class MainProfileSearchView(ListAPIView):
     
     permission_classes = [IsAuthenticated]
-    serializer_class = ProfileSerializer
+    serializer_class = ProfileSearchSerializer
     
     queryset = Profile.objects.all()
     filter_backends = [filters.SearchFilter] 
