@@ -9,6 +9,30 @@ from django.shortcuts import get_object_or_404
 from itertools import chain
 from django.contrib.postgres.search import SearchVector, SearchQuery, TrigramSimilarity
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
+
+class PaginationHandlerMixin(object):
+    @property
+    def paginator(self):
+        if not hasattr(self, '_paginator'):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        else:
+            pass
+        return self._paginator
+
+    def paginate_queryset(self, queryset):
+
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset,
+                                                self.request, view=self)
+
+    def get_paginated_response(self, data):
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
 
 
 class PostView(CreateAPIView):
@@ -19,6 +43,7 @@ class PostView(CreateAPIView):
     
     def post(self, request, *args, **kwargs):
         
+        print(request.data)
         try:
             request.data._mutable = True
         except AttributeError:
@@ -252,17 +277,27 @@ class PostBookmarkView(ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         request.data.update({"post_owner" : Profile.objects.get(user = request.user).id})
         return super().post(request, *args, **kwargs)
+ 
+ 
+class BasicPagination(PageNumberPagination):
     
+    page_size= 8
+    page_size_query_param = 'limit'
+    max_page_size = 20  
     
-class FeedView(views.APIView):
-    
-    permission_classes = [IsAuthenticated]
-
-    def check_post_exists_in_response(self, post, response):
+  
+  
+def check_post_exists_in_response(post, response):
         for item in response:
             if post.id == item['id']:
                 return True
-        return False
+        return False  
+class FeedView(views.APIView, PaginationHandlerMixin):
+    
+    permission_classes = [IsAuthenticated]
+    pagination_class = BasicPagination
+
+    
     
     def get(self, request, *args, **kwargs):
         response = list()
@@ -272,33 +307,39 @@ class FeedView(views.APIView):
         for profile in following_profiles:
             
             for reaction in profile.post_reactions.all():
-                if not self.check_post_exists_in_response(reaction.post,response):
+                if not check_post_exists_in_response(reaction.post,response):
                     
                     data = PostSerializer(instance = reaction.post, context = {"request": self.request}).data
                     data['message'] = f"{reaction.post.post_owner.full_name} reacted to this Post."
                     response.append(data)
 
             for comment in profile.comment_set.all():
-                if not self.check_post_exists_in_response(comment.post,response):
+                if not check_post_exists_in_response(comment.post,response):
                     data = PostSerializer(instance = comment.post, context = {"request": self.request}).data
                     data['message'] = f"{comment.post.post_owner.full_name} commented on this Post."
                     response.append(data)
                     
             for post in profile.created_posts.all():
-                if not self.check_post_exists_in_response(post,response):
+                if not check_post_exists_in_response(post,response):
                     data = PostSerializer(instance = post, context = {"request": self.request}).data
                     response.append(data)
                     
         for hashtag in user_profile.followed_hastags.all():
             for post in hashtag.associated_posts.filter().exclude(post_owner = user_profile):
-                if not self.check_post_exists_in_response(post,response):
+                if not check_post_exists_in_response(post,response):
                     data = PostSerializer(instance = post, context = {"request": self.request}).data
                     data['message'] = f" A post related to {hashtag.topic} "
                     response.append(data)
                     
-        return Response(response, status=status.HTTP_200_OK)
-    
-    
+        for post in Post.objects.all():
+            if not check_post_exists_in_response(post,response):
+                data = PostSerializer(instance = post, context = {"request": self.request}).data
+                response.append(data)
+                
+        page = self.paginate_queryset(response)
+        return self.get_paginated_response(page)
+
+
   
   
 class RePostView(CreateAPIView):
@@ -320,10 +361,30 @@ class RePostView(CreateAPIView):
         return super().post(request, *args, **kwargs)
 
 
+class ActivityView(ListAPIView):
     
-# class HashTagFollowView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ActivitySerializer
     
-#     permission_classes = [IsAuthenticated]
-#     serializer_class = HashTagFollowSerializer
+    pagination_class = BasicPagination
     
+    def get_queryset(self):
+        profile = get_object_or_404(Profile, user = self.request.user)
+        
+        queryset1 = Post.objects.filter(post_owner = profile).order_by('-created_at')
+        queryset2 = PostReaction.objects.filter(reacted_by= profile)
+        
+        queryset3 = Comment.objects.filter(comment_owner = profile).order_by('-created_at')
+        queryset4 = CommentReaction.objects.filter(reaction_owner = profile)
+        
+        queryset5 = CommentReply.objects.filter(reply_owner = profile).order_by('-created_at')
+        queryset6 = ReplyReaction.objects.filter(reaction_owner = profile)
+        
+        model_combination = list(chain(queryset1, queryset2, queryset3, queryset4, queryset5, queryset6))
+        return model_combination
+
+   
+    
+
+      
     

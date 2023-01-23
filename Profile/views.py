@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import status, filters
 from rest_framework.generics import *
 from Profile.serializers import *
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -418,10 +418,9 @@ class OrganizationView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = OrganizationSerializer
     
-    def get_queryset(self):
-        search_input = self.request.GET.get('search_input')
-        return Organization.objects.annotate(similarity=TrigramSimilarity('name',search_input)+TrigramSimilarity('type',search_input)).filter(similarity__gt=0.15, registered= True).order_by('-similarity')
-
+    queryset = Organization.objects.filter(registered = True)
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'type']
     
 class MyOrganizationView(APIView):
     
@@ -492,3 +491,35 @@ class SkillsListView(ListAPIView):
         
         search_input = self.request.GET.get('search_input')
         return SkillsList.objects.annotate(similarity=TrigramSimilarity('type',search_input,)).filter(similarity__gt=0.15).order_by('-similarity')
+    
+    
+class ProfileSearchView(ListAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = ShortProfileSerializer
+    
+    queryset = Profile.objects.all()
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['first_name', 'last_name','country' ,'headline', 'city']
+    
+    
+    
+class MainProfileSearchView(ListAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileSerializer
+    
+    queryset = Profile.objects.all()
+    filter_backends = [filters.SearchFilter] 
+    search_fields = ['^first_name', '^last_name', 'headline', 'city', 'country',
+                     'user__experience__tagline', 'user__education__school__name']
+    
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        self.request.data.update({"owner": False, "user": self.request.user})
+        context['request'] = self.request
+        return context
+    
+    
+    

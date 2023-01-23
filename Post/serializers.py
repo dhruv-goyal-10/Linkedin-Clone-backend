@@ -31,7 +31,7 @@ class PostSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
         child=serializers.ImageField(), write_only = True, required = False )
     
-    post_owner_data = ShortProfileSerializer(source = "post_owner", read_only = True)
+    post_owner_profile = ShortProfileSerializer(source = "post_owner", read_only = True)
     
     class Meta:
         model = Post
@@ -324,9 +324,51 @@ class PostBookmarkSerializer(serializers.ModelSerializer):
         return data
 
 
+
+
+
+
 # class HashTagFollowSerializer(serializers.ModelSerializer):
     
 #     class Meta:
 #         model = HashTag
 #         fields = ['topic']   
+        
+        
+        
+class ActivitySerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Post
+        exclude = ['saved_by', 'viewed_by']
+        
+    def to_representation(self, instance):
+        
+        
+        if type(instance) is Post:
+            data = PostSerializer(instance = instance, context = {"request": self.context['request']}).data
+            data['message'] = f"{instance.post_owner.full_name} posted this."
+            
+        elif type(instance) is PostReaction:
+            
+            data = SinglePostReactionSerializer(instance = instance, context = {"request": self.context['request']}).data
+            data['message'] = f"{instance.reacted_by.full_name} reacted to this post."
+        
+        elif type(instance) is Comment:
+            data = SinglePostCommentSerializer(instance = instance,context = {"request": self.context['request']} ).data
+            data['message'] = f"{instance.comment_owner.full_name} commented on this post."
+            
+        elif type(instance) is CommentReaction:
+            data = SingleCommentReactionSerializer(instance = instance, context = {"request": self.context['request']}).data
+            data['message'] = f"{instance.reaction_owner.full_name} reacted to the comment on this post."
+        
+        elif type(instance) is CommentReply:
+            data = SingleReplySerializer(instance = instance,context = {"request": self.context['request']} ).data
+            data['message'] = f"{instance.reply_owner.full_name} replied to comment on this post."
+            
+        elif type(instance) is ReplyReaction:
+            data = SingleReplyReactionSerializer(instance = instance, context = {"request": self.context['request']}).data
+            data['message'] = f"{instance.reaction_owner.full_name} reacted to a reply on this post."
+            
+        return data
         

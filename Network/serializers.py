@@ -189,11 +189,10 @@ class ConnectionListSerializer(serializers.ModelSerializer):
 class FollowingSerializer(serializers.ModelSerializer):
     
     following_profile_data = ShortProfileSerializer(source = "profile", read_only = True)
-    
-    
     class Meta:
         model = Follow
         fields = "__all__"
+        
         
 class FollowersSerializer(serializers.ModelSerializer):
     

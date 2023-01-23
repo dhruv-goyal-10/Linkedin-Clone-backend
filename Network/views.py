@@ -155,6 +155,14 @@ class FollowingView(ListCreateAPIView):
         request.data.update({"profile" : profile.id, "follower": self.request.user.id})
         return super().post(request, *args, **kwargs)
     
+
+class DeleteFollowingView(DestroyAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = FollowingSerializer
+
+    def get_queryset(self):
+        return Follow.objects.filter(follower = self.request.user)
     
 class FollowersView(ListAPIView):
     
@@ -184,7 +192,4 @@ class MutualConnectionsView(ListAPIView):
             return queryset
             
     
-        
-        
-        
     

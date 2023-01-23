@@ -32,4 +32,5 @@ urlpatterns = [
     path('skill/list/', SkillsListView.as_view()),
     
     path('mainpage/', MainPageView.as_view()),
+    path('search/', MainProfileSearchView.as_view()),
 ]

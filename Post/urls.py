@@ -25,7 +25,7 @@ urlpatterns = [
     
     path('feed/', FeedView.as_view()),
     path('repost/', RePostView.as_view()),
-    
+    path('activity/', ActivityView.as_view()),
     
     # path('hashtags/', HashTagFollowView.as_view())
 ]
