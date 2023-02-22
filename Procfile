@@ -1,1 +1,0 @@
-web: gunicorn LinkedIn.wsgi --log-file -
