@@ -361,7 +361,7 @@ class MainProfileSerializer(serializers.ModelSerializer):
     
     def get_owner(self, instance):
         return self.context['request'].data['owner']
-
+    
     def to_representation(self, instance):
         data = super().to_representation(instance)
         profile_viewers_count = len(data.pop('viewers'))
@@ -515,4 +515,16 @@ class ShortExperienceSerializer(serializers.ModelSerializer):
         return data
 
     
+class ProfileSearchSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Profile
+        exclude = ['id', 'phone_number', 'second_degrees', 'third_degrees']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['is_following'] = False
+        if instance.followers.filter(id = self.context['request'].user.id).exists():
+            data['is_following'] = True
+        return data
+    

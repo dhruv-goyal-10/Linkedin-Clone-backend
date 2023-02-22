@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import status, filters
 from rest_framework.generics import *
 from Profile.serializers import *
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from itertools import chain
 from django.contrib.postgres.search import SearchVector, SearchQuery, TrigramSimilarity
 from rest_framework.views import APIView
-
+from Notification.models import *
 
 
 class EducationView(ListCreateAPIView):
@@ -360,8 +360,15 @@ class MainProfileView(RetrieveUpdateAPIView):
                 profile = get_object_or_404(Profile, username=username)
                 main_profile = MainProfile.objects.get_or_create(profile = profile)[0]
                 viewer_profile = Profile.objects.get_or_create(user = self.request.user)[0]
-                ProfileView.objects.update_or_create(viewer = viewer_profile,
-                                                     viewed_profile = main_profile)
+                profile_view = ProfileView.objects.update_or_create(viewer = viewer_profile,
+                                                                    viewed_profile = main_profile)
+
+                noti = Notification.objects.get_or_create(action = profile_view[0].id,
+                                            target = profile,
+                                            source = viewer_profile,
+                                            type = NotificationType.objects.get(type = "profile_view"))[0]
+                noti.seen = False
+                noti.save()
                 self.request.data.update({"owner": False})
                 return main_profile
 
@@ -418,10 +425,9 @@ class OrganizationView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = OrganizationSerializer
     
-    def get_queryset(self):
-        search_input = self.request.GET.get('search_input')
-        return Organization.objects.annotate(similarity=TrigramSimilarity('name',search_input)+TrigramSimilarity('type',search_input)).filter(similarity__gt=0.15, registered= True).order_by('-similarity')
-
+    queryset = Organization.objects.filter(registered = True)
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'type']
     
 class MyOrganizationView(APIView):
     
@@ -471,17 +477,25 @@ class MainPageView(RetrieveUpdateAPIView):
                 profile = get_object_or_404(Profile, username=username)
                 main_profile = MainProfile.objects.get_or_create(profile = profile)[0]
                 viewer_profile = Profile.objects.get_or_create(user = self.request.user)[0]
-                ProfileView.objects.update_or_create(viewer = viewer_profile,
-                                                     viewed_profile = main_profile)
+                profile_view = ProfileView.objects.update_or_create(viewer = viewer_profile,
+                                                                    viewed_profile = main_profile)
+
+                noti = Notification.objects.get_or_create(action = profile_view[0].id,
+                                            target = profile,
+                                            source = viewer_profile,
+                                            type = NotificationType.objects.get(type = "profile_view"))[0]
+                noti.seen = False
+                noti.save()
+
                 self.request.data.update({"owner": False})
                 return main_profile
-
+                
         except TypeError:
             username = self.request.GET.get('username')
-            profile = get_object_or_404(Profile, username=username)
+            profile = get_object_or_404(Profile, username = username)
             self.request.data.update({"owner": False})
             return MainProfile.objects.get_or_create(profile = profile)[0]
-        
+
         
 class SkillsListView(ListAPIView):
     
@@ -492,3 +506,35 @@ class SkillsListView(ListAPIView):
         
         search_input = self.request.GET.get('search_input')
         return SkillsList.objects.annotate(similarity=TrigramSimilarity('type',search_input,)).filter(similarity__gt=0.15).order_by('-similarity')
+    
+    
+class ProfileSearchView(ListAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = ShortProfileSerializer
+    
+    queryset = Profile.objects.all()
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['first_name', 'last_name','country' ,'headline', 'city']
+    
+    
+    
+class MainProfileSearchView(ListAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileSearchSerializer
+    
+    queryset = Profile.objects.all()
+    filter_backends = [filters.SearchFilter] 
+    search_fields = ['^first_name', '^last_name', 'headline', 'city', 'country',
+                     'user__experience__tagline', 'user__education__school__name']
+    
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        self.request.data.update({"owner": False, "user": self.request.user})
+        context['request'] = self.request
+        return context
+    
+    
+    

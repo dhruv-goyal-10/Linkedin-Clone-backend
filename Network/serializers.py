@@ -69,11 +69,14 @@ class ConnectionRequestAcceptSerializer(serializers.Serializer):
         sender_profile.first_degrees.add(reciever_profile.user)
         reciever_profile.first_degrees.add(sender_profile.user)
         
+        sender_profile.followers.add(reciever_profile.user)
+        reciever_profile.followers.add(sender_profile.user)
+        
         connection_request.delete()
         
         try:
             second_connection_request = ConnectionRequest.objects.get(sender = reciever_profile,
-                                                                        reciever = sender_profile)
+                                                                      reciever = sender_profile)
             second_connection_request.delete()
         except ObjectDoesNotExist:
             pass
@@ -186,11 +189,10 @@ class ConnectionListSerializer(serializers.ModelSerializer):
 class FollowingSerializer(serializers.ModelSerializer):
     
     following_profile_data = ShortProfileSerializer(source = "profile", read_only = True)
-    
-    
     class Meta:
         model = Follow
         fields = "__all__"
+        
         
 class FollowersSerializer(serializers.ModelSerializer):
     

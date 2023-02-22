@@ -109,10 +109,12 @@ class ConnectionRemoveView(views.APIView):
         try:
             username = self.request.data['username']
             user1 = self.request.user
-            profile1 = Profile.objects.get(user = user1)
-            profile2 = Profile.objects.get(username = username)
+            profile1 = get_object_or_404(Profile, user=user1)
+            # profile1 = Profile.objects.get(user = user1)
+            # profile2 = Profile.objects.get(username = username)
+            profile2 = get_object_or_404(Profile, username=username)
             user2 = profile2.user
-            if not profile1.first_degrees.filter(id = user1.id).exists():
+            if not profile1.first_degrees.filter(id = user2.id).exists():
                 return Response({"detail": "You already don't have any connection with this profile."}, status=status.HTTP_400_BAD_REQUEST)
             profile1.first_degrees.remove(user2)
             profile2.first_degrees.remove(user1)
@@ -153,6 +155,14 @@ class FollowingView(ListCreateAPIView):
         request.data.update({"profile" : profile.id, "follower": self.request.user.id})
         return super().post(request, *args, **kwargs)
     
+
+class DeleteFollowingView(DestroyAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = FollowingSerializer
+
+    def get_queryset(self):
+        return Follow.objects.filter(follower = self.request.user)
     
 class FollowersView(ListAPIView):
     
@@ -181,8 +191,22 @@ class MutualConnectionsView(ListAPIView):
             queryset = queryset.intersection(queryset, viewer_profile.first_degrees.all())
             return queryset
             
+            
+            
+
+class UnfollowView(views.APIView):
     
-        
-        
-        
+    permission_classes = [IsAuthenticated]
     
+    def post(self, request, *args, **kwargs):
+        
+        username = request.data.get('username')
+        if username is None:
+            return Response({"detail": "Please provide the username."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        profile = get_object_or_404(Profile, username = username)
+        if not profile.followers.filter(id = self.request.user.id).exists():
+            return Response({"detail": "You are not following this user"}, status=status.HTTP_400_BAD_REQUEST)
+
+        profile.followers.remove(self.request.user)
+        return Response({"detail": "You have successfully unfollowed the user"}, status=status.HTTP_200_OK)
